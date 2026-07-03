@@ -44,11 +44,9 @@ body {
   flex-wrap: wrap;
   gap: 0.75rem;
   padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
-  background: rgba(10, 10, 10, 0.92);
-  backdrop-filter: blur(8px);
+  background: var(--accent);
   z-index: 10;
 }
 
@@ -56,6 +54,11 @@ body {
   font-size: 1.4rem;
   font-weight: 600;
   letter-spacing: 0.04em;
+  color: #0a0a0a;
+}
+
+.app-title .accent {
+  color: rgba(0, 0, 0, 0.55);
 }
 
 .tabs {
@@ -64,7 +67,7 @@ body {
 }
 
 .tab {
-  color: var(--muted);
+  color: rgba(0, 0, 0, 0.6);
   text-decoration: none;
   padding: 0.45rem 1rem 0.35rem;
   border-radius: 999px;
@@ -73,12 +76,12 @@ body {
 }
 
 .tab:hover {
-  color: var(--text);
+  color: #0a0a0a;
 }
 
 .tab.active {
   color: var(--accent);
-  background: var(--accent-dim);
+  background: #0a0a0a;
 }
 
 /* ---------- Layout ---------- */
@@ -119,7 +122,7 @@ body {
   color: var(--muted);
   text-align: center;
   padding: 2.5rem 1rem;
-  border: 1px dashed var(--border);
+  background: var(--surface);
   border-radius: var(--radius);
   margin-top: 1rem;
 }
@@ -128,7 +131,6 @@ body {
 
 .card {
   background: var(--surface);
-  border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1rem 1.1rem;
   margin-bottom: 0.75rem;
@@ -140,7 +142,6 @@ body {
   gap: 0.75rem;
   padding: 0.65rem 0.9rem;
   background: var(--surface);
-  border: 1px solid var(--border);
   border-radius: var(--radius);
   margin-bottom: 0.5rem;
 }
@@ -197,20 +198,19 @@ body {
   font-weight: 400;
   color: var(--text);
   background: var(--surface-2);
-  border: 1px solid var(--border);
+  border: none;
   border-radius: 8px;
   padding: 0.5rem 0.9rem 0.4rem;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background 0.15s;
 }
 
 .btn:hover {
-  border-color: var(--muted);
+  background: var(--border);
 }
 
 .btn.primary {
   background: var(--accent);
-  border-color: var(--accent);
   color: var(--bg);
   font-weight: 600;
 }
@@ -260,7 +260,6 @@ body {
   align-items: center;
   gap: 1.25rem;
   background: var(--surface);
-  border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1.1rem 1.25rem;
   margin-bottom: 1.5rem;
@@ -308,7 +307,7 @@ body {
   text-align: center;
   color: var(--text);
   background: var(--surface-2);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-radius: 6px;
   padding: 0.3rem 0.2rem 0.2rem;
 }
@@ -328,7 +327,7 @@ body {
 }
 
 .plan-card:hover {
-  border-color: var(--muted);
+  background: var(--surface-2);
 }
 
 .plan-card-top {
@@ -389,7 +388,7 @@ body {
   font-weight: 300;
   color: var(--text);
   background: var(--surface-2);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-radius: 8px;
   padding: 0.6rem 0.75rem 0.5rem;
 }
@@ -481,7 +480,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-weight: 300;
   color: var(--text);
   background: var(--surface-2);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-radius: 8px;
   padding: 0.5rem 0.7rem 0.4rem;
 }
@@ -497,7 +496,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   max-width: 680px;
   margin: 1rem auto 0;
   padding: 0.75rem 1rem 0.65rem;
-  border: 1px solid var(--danger);
+  background: rgba(248, 113, 113, 0.12);
   border-radius: var(--radius);
   color: var(--danger);
   font-size: 0.9rem;
@@ -510,7 +509,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   margin: 3rem auto;
   padding: 2rem;
   background: var(--surface);
-  border: 1px solid var(--border);
   border-radius: var(--radius);
 }
 
