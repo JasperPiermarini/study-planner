@@ -5,8 +5,8 @@
   --border: #2b2b2b;
   --text: #eaeaea;
   --muted: #969696;
-  --accent: #fb923c;
-  --accent-dim: rgba(251, 146, 60, 0.12);
+  --accent: #f97316;
+  --accent-dim: rgba(249, 115, 22, 0.12);
   --danger: #f87171;
   --radius: 12px;
 }
@@ -58,7 +58,7 @@ body {
 }
 
 .app-title .accent {
-  color: rgba(0, 0, 0, 0.55);
+  color: #ffffff;
 }
 
 .tabs {
@@ -144,6 +144,12 @@ body {
   background: var(--surface);
   border-radius: var(--radius);
   margin-bottom: 0.5rem;
+  transition: transform 0.15s, filter 0.15s;
+}
+
+.topic-row:hover {
+  transform: scale(1.015);
+  filter: brightness(1.3);
 }
 
 .topic-row.done .topic-title {
@@ -202,11 +208,12 @@ body {
   border-radius: 8px;
   padding: 0.5rem 0.9rem 0.4rem;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s, transform 0.15s, filter 0.15s;
 }
 
 .btn:hover {
-  background: var(--border);
+  transform: scale(1.05);
+  filter: brightness(1.25);
 }
 
 .btn.primary {
@@ -216,7 +223,7 @@ body {
 }
 
 .btn.primary:hover {
-  filter: brightness(1.08);
+  filter: brightness(1.1);
 }
 
 .btn.small {
@@ -323,11 +330,12 @@ body {
   display: block;
   color: inherit;
   text-decoration: none;
-  transition: border-color 0.15s;
+  transition: transform 0.15s, filter 0.15s;
 }
 
 .plan-card:hover {
-  background: var(--surface-2);
+  transform: scale(1.02);
+  filter: brightness(1.3);
 }
 
 .plan-card-top {
