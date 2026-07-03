@@ -226,18 +226,33 @@ function topicRow(topic, { showPlan = false, showMove = false, showToToday = fal
 
 // ---------- Pomodoro ----------
 
-const FOCUS_SECONDS = 25 * 60;
-const BREAK_SECONDS = 5 * 60;
+function loadMinutes(key, fallback) {
+  const value = parseInt(localStorage.getItem(key), 10);
+  return value >= 1 && value <= 180 ? value : fallback;
+}
 
 const pomo = {
   mode: "focus", // "focus" | "break"
-  remaining: FOCUS_SECONDS,
+  focusMinutes: loadMinutes("pomo.focus", 25),
+  breakMinutes: loadMinutes("pomo.break", 5),
+  remaining: 0,
   running: false,
   intervalId: null,
 };
+pomo.remaining = pomo.focusMinutes * 60;
 
 function pomoDuration() {
-  return pomo.mode === "focus" ? FOCUS_SECONDS : BREAK_SECONDS;
+  return (pomo.mode === "focus" ? pomo.focusMinutes : pomo.breakMinutes) * 60;
+}
+
+function setPomoMinutes(mode, minutes) {
+  minutes = Math.min(Math.max(Math.round(minutes) || 1, 1), 180);
+  if (mode === "focus") pomo.focusMinutes = minutes;
+  else pomo.breakMinutes = minutes;
+  localStorage.setItem(mode === "focus" ? "pomo.focus" : "pomo.break", minutes);
+  if (!pomo.running) pomo.remaining = pomoDuration();
+  updatePomoDisplay();
+  return minutes;
 }
 
 function formatTime(seconds) {
@@ -273,7 +288,7 @@ function pomoPause() {
 function pomoReset() {
   pomoPause();
   pomo.mode = "focus";
-  pomo.remaining = FOCUS_SECONDS;
+  pomo.remaining = pomo.focusMinutes * 60;
   updatePomoDisplay();
 }
 
@@ -309,6 +324,18 @@ function beep() {
   }
 }
 
+function minutesInput(mode) {
+  const input = el("input", {
+    type: "number",
+    min: "1",
+    max: "180",
+    title: `${mode === "focus" ? "Focus" : "Break"} length in minutes`,
+    onchange: () => (input.value = setPomoMinutes(mode, Number(input.value))),
+  });
+  input.value = mode === "focus" ? pomo.focusMinutes : pomo.breakMinutes;
+  return input;
+}
+
 function pomodoroWidget() {
   const widget = el(
     "div",
@@ -318,6 +345,14 @@ function pomodoroWidget() {
       {},
       el("div", { class: "pomodoro-mode" }, "Focus"),
       el("div", { class: "pomodoro-time" }, formatTime(pomo.remaining))
+    ),
+    el(
+      "div",
+      { class: "pomodoro-settings" },
+      minutesInput("focus"),
+      el("span", {}, "focus ·"),
+      minutesInput("break"),
+      el("span", {}, "break")
     ),
     el(
       "div",

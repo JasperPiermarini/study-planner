@@ -1,10 +1,10 @@
 :root {
-  --bg: #0e1014;
-  --surface: #161920;
-  --surface-2: #1e222c;
-  --border: #262b37;
-  --text: #e9e7e2;
-  --muted: #8b90a0;
+  --bg: #0a0a0a;
+  --surface: #151515;
+  --surface-2: #1f1f1f;
+  --border: #2b2b2b;
+  --text: #eaeaea;
+  --muted: #969696;
   --accent: #fb923c;
   --accent-dim: rgba(251, 146, 60, 0.12);
   --danger: #f87171;
@@ -47,7 +47,7 @@ body {
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
-  background: rgba(14, 16, 20, 0.92);
+  background: rgba(10, 10, 10, 0.92);
   backdrop-filter: blur(8px);
   z-index: 10;
 }
@@ -289,6 +289,33 @@ body {
   display: flex;
   gap: 0.5rem;
   margin-left: auto;
+}
+
+.pomodoro-settings {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.pomodoro-settings input {
+  width: 3.2rem;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 400;
+  text-align: center;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.3rem 0.2rem 0.2rem;
+}
+
+.pomodoro-settings input:focus {
+  outline: none;
+  border-color: var(--accent);
 }
 
 /* ---------- Plan cards ---------- */
