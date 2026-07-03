@@ -135,6 +135,17 @@ function deleteTopic(topic) {
   deleteDoc(doc(topicsCol, topic.id));
 }
 
+function editTopicLink(topic) {
+  const input = prompt(
+    "Link for this topic (leave empty to remove):",
+    topic.link ?? ""
+  );
+  if (input === null) return;
+  let link = input.trim();
+  if (link && !/^https?:\/\//i.test(link)) link = "https://" + link;
+  updateDoc(doc(topicsCol, topic.id), { link });
+}
+
 async function addTopic(planId, title, date) {
   const maxOrder = Math.max(
     -1,
@@ -202,6 +213,19 @@ function topicRow(topic, { showPlan = false, showMove = false, showToToday = fal
     { class: "topic-row" + (topic.done ? " done" : "") },
     check,
     el("span", { class: "topic-title" }, topic.title),
+    topic.link
+      ? el(
+          "a",
+          {
+            class: "icon-btn topic-link",
+            href: topic.link,
+            target: "_blank",
+            rel: "noopener",
+            title: topic.link,
+          },
+          "↗"
+        )
+      : null,
     showPlan ? el("span", { class: "topic-plan" }, planName(topic.planId)) : null
   );
 
@@ -215,6 +239,7 @@ function topicRow(topic, { showPlan = false, showMove = false, showToToday = fal
       el(
         "div",
         { class: "move-controls" },
+        el("button", { class: "icon-btn", title: "Add or edit link", onclick: () => editTopicLink(topic) }, "🔗"),
         el("button", { class: "icon-btn", title: "Move a day earlier", onclick: () => moveTopic(topic, -1) }, "◀"),
         el("button", { class: "icon-btn", title: "Move a day later", onclick: () => moveTopic(topic, 1) }, "▶"),
         el("button", { class: "icon-btn danger", title: "Delete topic", onclick: () => deleteTopic(topic) }, "✕")

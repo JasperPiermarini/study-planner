@@ -261,6 +261,12 @@ body {
   color: var(--danger);
 }
 
+.topic-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
 /* ---------- Pomodoro ---------- */
 
 .pomodoro {
