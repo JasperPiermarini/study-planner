@@ -86,21 +86,34 @@ function spreadDates(count, startDate, endDate) {
   return dates;
 }
 
+// ---------- Topic line parsing ----------
+
+// A topic entry may end with a URL, e.g. "Trig sub https://openstax.org/..."
+// or "Trig sub | https://...". Returns { title, link }.
+function parseTopicLine(line) {
+  const match = line.match(/^(.*?)[\s|]+((?:https?:\/\/|www\.)\S+)$/i);
+  if (!match || !match[1].trim()) return { title: line.trim(), link: "" };
+  let link = match[2];
+  if (!/^https?:\/\//i.test(link)) link = "https://" + link;
+  return { title: match[1].replace(/[\s|]+$/, "").trim(), link };
+}
+
 // ---------- Firestore actions ----------
 
-async function createPlan(name, startDate, endDate, topicTitles) {
+async function createPlan(name, startDate, endDate, topicEntries) {
   const planRef = await addDoc(plansCol, {
     name,
     startDate,
     endDate,
     createdAt: serverTimestamp(),
   });
-  const dates = spreadDates(topicTitles.length, startDate, endDate);
+  const dates = spreadDates(topicEntries.length, startDate, endDate);
   const batch = writeBatch(db);
-  topicTitles.forEach((title, i) => {
+  topicEntries.forEach((entry, i) => {
     batch.set(doc(topicsCol), {
       planId: planRef.id,
-      title,
+      title: entry.title,
+      link: entry.link,
       date: dates[i],
       done: false,
       order: i,
@@ -146,7 +159,7 @@ function editTopicLink(topic) {
   updateDoc(doc(topicsCol, topic.id), { link });
 }
 
-async function addTopic(planId, title, date) {
+async function addTopic(planId, title, link, date) {
   const maxOrder = Math.max(
     -1,
     ...topics.filter((t) => t.planId === planId).map((t) => t.order ?? 0)
@@ -154,6 +167,7 @@ async function addTopic(planId, title, date) {
   await addDoc(topicsCol, {
     planId,
     title,
+    link,
     date,
     done: false,
     order: maxOrder + 1,
@@ -509,7 +523,7 @@ function renderNewPlan() {
   const startInput = el("input", { type: "date", value: todayStr() });
   const endInput = el("input", { type: "date", value: addDays(todayStr(), 13) });
   const topicsInput = el("textarea", {
-    placeholder: "One topic per line, in the order you want to study them:\nChapter 1 — Descriptive statistics\nChapter 2 — Probability\nPractice exam 2024",
+    placeholder: "One topic per line, in the order you want to study them.\nOptionally end a line with a link:\nChapter 1 — Descriptive statistics\nChapter 2 — Probability https://openstax.org/...\nPractice exam 2024",
   });
 
   const form = el(
@@ -519,11 +533,12 @@ function renderNewPlan() {
       onsubmit: async (e) => {
         e.preventDefault();
         const name = nameInput.value.trim();
-        const titles = topicsInput.value
+        const entries = topicsInput.value
           .split("\n")
           .map((line) => line.trim())
-          .filter(Boolean);
-        if (!name || titles.length === 0) {
+          .filter(Boolean)
+          .map(parseTopicLine);
+        if (!name || entries.length === 0) {
           alert("Give the plan a name and at least one topic.");
           return;
         }
@@ -532,7 +547,7 @@ function renderNewPlan() {
           return;
         }
         form.querySelector("button[type=submit]").disabled = true;
-        const planId = await createPlan(name, startInput.value, endInput.value, titles);
+        const planId = await createPlan(name, startInput.value, endInput.value, entries);
         location.hash = `#plan/${planId}`;
       },
     },
@@ -635,7 +650,7 @@ function renderPlanDetail(planId) {
   }
 
   // Add-topic form (defaults to today if within range, else the start date).
-  const titleInput = el("input", { type: "text", placeholder: "Add a topic…" });
+  const titleInput = el("input", { type: "text", placeholder: "Add a topic… (link at the end is optional)" });
   const defaultDate = today >= plan.startDate && today <= plan.endDate ? today : plan.startDate;
   const dateInput = el("input", { type: "date", value: defaultDate });
   view.append(
@@ -645,9 +660,9 @@ function renderPlanDetail(planId) {
         class: "add-topic-form",
         onsubmit: (e) => {
           e.preventDefault();
-          const title = titleInput.value.trim();
-          if (!title) return;
-          addTopic(planId, title, dateInput.value || defaultDate);
+          const entry = parseTopicLine(titleInput.value);
+          if (!entry.title) return;
+          addTopic(planId, entry.title, entry.link, dateInput.value || defaultDate);
           titleInput.value = "";
         },
       },
