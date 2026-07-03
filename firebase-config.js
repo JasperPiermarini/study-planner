@@ -1,10 +1,8 @@
-// Paste your Firebase web app config here (Firebase console → Project settings
-// → Your apps → SDK setup and configuration → Config). See README.md.
 export const firebaseConfig = {
-  apiKey: "PASTE_YOUR_API_KEY",
-  authDomain: "PASTE_YOUR_PROJECT.firebaseapp.com",
-  projectId: "PASTE_YOUR_PROJECT_ID",
-  storageBucket: "PASTE_YOUR_PROJECT.appspot.com",
-  messagingSenderId: "PASTE_YOUR_SENDER_ID",
-  appId: "PASTE_YOUR_APP_ID",
+  apiKey: "AIzaSyCunMVwMphH1kYVk24qPXg_f3VAdjOa93Q",
+  authDomain: "schedule-planner-ad5b5.firebaseapp.com",
+  projectId: "schedule-planner-ad5b5",
+  storageBucket: "schedule-planner-ad5b5.firebasestorage.app",
+  messagingSenderId: "80433447871",
+  appId: "1:80433447871:web:e8016c741e0552f450570a",
 };

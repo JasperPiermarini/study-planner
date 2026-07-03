@@ -622,14 +622,26 @@ window.addEventListener("hashchange", render);
 
 // ---------- Live data ----------
 
+function showDbError(error) {
+  let banner = document.getElementById("db-error");
+  if (!banner) {
+    banner = el("div", { class: "db-error", id: "db-error" });
+    document.querySelector(".app-header").after(banner);
+  }
+  banner.textContent =
+    error.code === "permission-denied"
+      ? "Can't reach the database: permission denied. Publish the Firestore rules from the README in the Firebase console."
+      : `Database error: ${error.message}`;
+}
+
 onSnapshot(plansCol, (snap) => {
   plans = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   render();
-});
+}, showDbError);
 
 onSnapshot(topicsCol, (snap) => {
   topics = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   render();
-});
+}, showDbError);
 
 render();
