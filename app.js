@@ -123,13 +123,37 @@ async function createPlan(name, startDate, endDate, topicEntries) {
   return planRef.id;
 }
 
-async function deletePlan(planId) {
+async function deletePlan(plan) {
+  const planTopics = topics.filter((t) => t.planId === plan.id);
   const batch = writeBatch(db);
-  topics
-    .filter((t) => t.planId === planId)
-    .forEach((t) => batch.delete(doc(topicsCol, t.id)));
-  batch.delete(doc(plansCol, planId));
+  planTopics.forEach((t) => batch.delete(doc(topicsCol, t.id)));
+  batch.delete(doc(plansCol, plan.id));
   await batch.commit();
+
+  pushUndo({
+    label: `Deleted plan "${plan.name}"`,
+    restore: async () => {
+      const newPlanRef = await addDoc(plansCol, {
+        name: plan.name,
+        startDate: plan.startDate,
+        endDate: plan.endDate,
+        createdAt: serverTimestamp(),
+      });
+      const restoreBatch = writeBatch(db);
+      planTopics.forEach((t) => {
+        restoreBatch.set(doc(topicsCol), {
+          planId: newPlanRef.id,
+          title: t.title,
+          link: t.link ?? "",
+          date: t.date,
+          done: t.done,
+          order: t.order ?? 0,
+        });
+      });
+      await restoreBatch.commit();
+      location.hash = `#plan/${newPlanRef.id}`;
+    },
+  });
 }
 
 function toggleTopic(topic) {
@@ -153,6 +177,18 @@ function moveTopicToToday(topic) {
 
 function deleteTopic(topic) {
   deleteDoc(doc(topicsCol, topic.id));
+  pushUndo({
+    label: `Deleted "${topic.title}"`,
+    restore: () =>
+      addDoc(topicsCol, {
+        planId: topic.planId,
+        title: topic.title,
+        link: topic.link ?? "",
+        date: topic.date,
+        done: topic.done,
+        order: topic.order ?? 0,
+      }),
+  });
 }
 
 function editTopicLink(topic) {
@@ -199,6 +235,58 @@ async function respreadPlan(plan) {
 
 function byDateAndOrder(a, b) {
   return a.date.localeCompare(b.date) || (a.order ?? 0) - (b.order ?? 0);
+}
+
+// ---------- Undo ----------
+
+let undoEntries = [];
+let undoCounter = 0;
+const UNDO_TIMEOUT_MS = 8000;
+
+function pushUndo({ label, restore }) {
+  const id = ++undoCounter;
+  const timeoutId = setTimeout(() => dismissUndo(id), UNDO_TIMEOUT_MS);
+  undoEntries.push({ id, label, restore, timeoutId });
+  renderUndoToasts();
+}
+
+function dismissUndo(id) {
+  const entry = undoEntries.find((e) => e.id === id);
+  if (!entry) return;
+  clearTimeout(entry.timeoutId);
+  undoEntries = undoEntries.filter((e) => e.id !== id);
+  renderUndoToasts();
+}
+
+function triggerUndo(id) {
+  const entry = undoEntries.find((e) => e.id === id);
+  if (!entry) return;
+  clearTimeout(entry.timeoutId);
+  undoEntries = undoEntries.filter((e) => e.id !== id);
+  renderUndoToasts();
+  entry.restore();
+}
+
+function renderUndoToasts() {
+  let container = document.getElementById("undo-toasts");
+  if (!container) {
+    container = el("div", { class: "undo-toasts", id: "undo-toasts" });
+    document.body.append(container);
+  }
+  container.replaceChildren(
+    ...undoEntries.map((entry) =>
+      el(
+        "div",
+        { class: "undo-toast" },
+        el("span", { class: "undo-toast-label" }, entry.label),
+        el(
+          "button",
+          { class: "btn small primary", onclick: () => triggerUndo(entry.id) },
+          "Undo"
+        )
+      )
+    )
+  );
 }
 
 // ---------- Rendering helpers ----------
@@ -683,7 +771,7 @@ function renderPlanDetail(planId) {
           class: "btn ghost danger",
           onclick: () => {
             if (confirm(`Delete "${plan.name}" and all its topics?`)) {
-              deletePlan(planId);
+              deletePlan(plan);
               location.hash = "#plans";
             }
           },
