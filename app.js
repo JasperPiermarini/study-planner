@@ -735,6 +735,10 @@ function renderNewPlan() {
   nameInput.focus();
 }
 
+// Remembers which day was last clicked as the "add a topic" target, per plan,
+// so it survives the full re-render that follows every Firestore update.
+const selectedAddDate = {};
+
 function renderPlanDetail(planId) {
   const plan = plans.find((p) => p.id === planId);
   if (!plan) {
@@ -744,6 +748,8 @@ function renderPlanDetail(planId) {
 
   const planTopics = topics.filter((t) => t.planId === planId).sort(byDateAndOrder);
   const today = todayStr();
+  const defaultDate = today >= plan.startDate && today <= plan.endDate ? today : plan.startDate;
+  const initialSelectedDate = selectedAddDate[planId] ?? defaultDate;
 
   view.replaceChildren(
     el(
@@ -796,6 +802,23 @@ function renderPlanDetail(planId) {
     byDate.get(t.date).push(t);
   }
 
+  // Add-topic form fields, created early so day columns can update them.
+  const titleInput = el("input", { type: "text", placeholder: "Add a topic… (link at the end is optional)" });
+  const dateInput = el("input", { type: "date", value: initialSelectedDate });
+
+  function selectDate(date, colEl) {
+    selectedAddDate[planId] = date;
+    dateInput.value = date;
+    board.querySelectorAll(".day-col.selected").forEach((c) => c.classList.remove("selected"));
+    colEl?.classList.add("selected");
+  }
+
+  dateInput.addEventListener("change", () => {
+    selectedAddDate[planId] = dateInput.value;
+    board.querySelectorAll(".day-col.selected").forEach((c) => c.classList.remove("selected"));
+    board.querySelector(`[data-date="${dateInput.value}"]`)?.classList.add("selected");
+  });
+
   const board = el("div", { class: "day-board" });
   let todayCol = null;
   for (let date = first, i = 0; date <= last && i < 370; date = addDays(date, 1), i++) {
@@ -811,7 +834,9 @@ function renderPlanDetail(planId) {
           (isToday ? " today" : "") +
           (date < today ? " past-day" : "") +
           (isWeekend ? " weekend" : "") +
-          (outOfRange ? " out-of-range" : ""),
+          (outOfRange ? " out-of-range" : "") +
+          (date === initialSelectedDate ? " selected" : ""),
+        "data-date": date,
       },
       el(
         "div",
@@ -822,6 +847,10 @@ function renderPlanDetail(planId) {
     );
 
     const dropDate = date;
+    col.addEventListener("click", (e) => {
+      if (e.target.closest(".topic-card")) return;
+      selectDate(dropDate, col);
+    });
     col.addEventListener("dragover", (e) => {
       e.preventDefault();
       e.dataTransfer.dropEffect = "move";
@@ -856,10 +885,6 @@ function renderPlanDetail(planId) {
     view.append(el("div", { class: "empty-state" }, "No topics in this plan yet — add one below."));
   }
 
-  // Add-topic form (defaults to today if within range, else the start date).
-  const titleInput = el("input", { type: "text", placeholder: "Add a topic… (link at the end is optional)" });
-  const defaultDate = today >= plan.startDate && today <= plan.endDate ? today : plan.startDate;
-  const dateInput = el("input", { type: "date", value: defaultDate });
   view.append(
     el(
       "form",
@@ -869,7 +894,7 @@ function renderPlanDetail(planId) {
           e.preventDefault();
           const entry = parseTopicLine(titleInput.value);
           if (!entry.title) return;
-          addTopic(planId, entry.title, entry.link, dateInput.value || defaultDate);
+          addTopic(planId, entry.title, entry.link, dateInput.value || initialSelectedDate);
           titleInput.value = "";
         },
       },

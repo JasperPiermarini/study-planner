@@ -494,6 +494,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   background: var(--surface);
   border-radius: var(--radius);
   padding: 0.5rem;
+  cursor: pointer;
   transition: background 0.15s;
 }
 
@@ -528,6 +529,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   background: transparent;
   outline: 1px dashed var(--border);
   outline-offset: -1px;
+}
+
+.day-col.selected {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
 .day-col.drag-over {
