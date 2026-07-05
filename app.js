@@ -754,9 +754,14 @@ function renderPlanDetail(planId) {
   }
   view.append(board);
 
-  // Scroll the board so today (or the first day) is in view.
+  // Scroll today into view — horizontally on the desktop board, vertically
+  // (page scroll) on the mobile stacked layout.
   if (todayCol) {
-    board.scrollLeft = Math.max(0, todayCol.offsetLeft - board.clientWidth / 3);
+    if (window.matchMedia("(max-width: 480px)").matches) {
+      todayCol.scrollIntoView({ block: "center" });
+    } else {
+      board.scrollLeft = Math.max(0, todayCol.offsetLeft - board.clientWidth / 3);
+    }
   }
 
   if (planTopics.length === 0) {
