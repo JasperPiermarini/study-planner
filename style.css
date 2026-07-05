@@ -81,6 +81,18 @@ html {
   font-weight: 700;
   letter-spacing: 0.04em;
   color: #0a0a0a;
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+
+.app-title:hover {
+  opacity: 0.8;
+}
+
+.app-title h1 {
+  font: inherit;
+  letter-spacing: inherit;
+  margin: 0;
 }
 
 .app-title .accent {
@@ -147,6 +159,10 @@ html {
   text-transform: uppercase;
   letter-spacing: 0.12em;
   margin: 1.5rem 0 0.6rem;
+}
+
+.section-label.today {
+  color: var(--accent);
 }
 
 .empty-state {

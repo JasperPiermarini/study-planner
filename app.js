@@ -618,6 +618,45 @@ function renderToday() {
   }
 }
 
+function renderAllTopics() {
+  const today = todayStr();
+  const sorted = [...topics].sort(byDateAndOrder);
+
+  view.replaceChildren(
+    el(
+      "div",
+      { class: "view-heading" },
+      el("h2", {}, "All topics"),
+      el("span", { class: "subtle" }, `${sorted.length} across all plans`)
+    )
+  );
+
+  if (sorted.length === 0) {
+    view.append(
+      el("div", { class: "empty-state" }, "No topics yet. Create a plan to get started.")
+    );
+    return;
+  }
+
+  const byDate = new Map();
+  for (const t of sorted) {
+    if (!byDate.has(t.date)) byDate.set(t.date, []);
+    byDate.get(t.date).push(t);
+  }
+
+  for (const [date, dayTopics] of byDate) {
+    const isToday = date === today;
+    view.append(
+      el(
+        "div",
+        { class: "section-label" + (isToday ? " today" : "") },
+        isToday ? "Today" : formatDate(date)
+      )
+    );
+    dayTopics.forEach((t) => view.append(topicRow(t, { showPlan: true })));
+  }
+}
+
 function renderPlans() {
   view.replaceChildren(
     el(
@@ -913,7 +952,7 @@ function currentRoute() {
 
 function render() {
   const route = currentRoute();
-  const tabName = route.startsWith("plan") || route === "new-plan" ? "plans" : "today";
+  const tabName = route.startsWith("plan") || route === "new-plan" ? "plans" : route === "all-topics" ? null : "today";
   document.querySelectorAll(".tab").forEach((tab) => {
     tab.classList.toggle("active", tab.dataset.tab === tabName);
   });
@@ -922,6 +961,7 @@ function render() {
   if (route === "today") renderToday();
   else if (route === "plans") renderPlans();
   else if (route === "new-plan") renderNewPlan();
+  else if (route === "all-topics") renderAllTopics();
   else if (route.startsWith("plan/")) renderPlanDetail(route.slice(5));
   else renderToday();
 }
