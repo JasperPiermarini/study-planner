@@ -217,6 +217,31 @@ function el(tag, attrs = {}, ...children) {
   return node;
 }
 
+// Inline SVG icons — renders identically on every platform, unlike emoji
+// characters which mobile OSes substitute with colorful native glyphs.
+const ICON_PATHS = {
+  link: '<path d="M9.5 14.5 14.5 9.5" /><path d="M11 6.5l1-1a3.5 3.5 0 0 1 5 5l-1 1" /><path d="M13 17.5l-1 1a3.5 3.5 0 0 1-5-5l1-1" />',
+  "chevron-left": '<polyline points="15 6 9 12 15 18" />',
+  "chevron-right": '<polyline points="9 6 15 12 9 18" />',
+  x: '<line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" />',
+  "external-link": '<line x1="7" y1="17" x2="17" y2="7" /><polyline points="9 7 17 7 17 15" />',
+};
+
+function icon(name) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("width", "14");
+  svg.setAttribute("height", "14");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-width", "2");
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("stroke-linejoin", "round");
+  svg.classList.add("icon");
+  svg.innerHTML = ICON_PATHS[name];
+  return svg;
+}
+
 function planName(planId) {
   return plans.find((p) => p.id === planId)?.name ?? "";
 }
@@ -248,17 +273,17 @@ function topicCard(topic) {
               rel: "noopener",
               title: topic.link,
             },
-            "↗"
+            icon("external-link")
           )
         : null
     ),
     el(
       "div",
       { class: "topic-card-controls" },
-      el("button", { class: "icon-btn small", title: "Add or edit link", onclick: () => editTopicLink(topic) }, "🔗"),
-      el("button", { class: "icon-btn small", title: "Move a day earlier", onclick: () => moveTopic(topic, -1) }, "◀"),
-      el("button", { class: "icon-btn small", title: "Move a day later", onclick: () => moveTopic(topic, 1) }, "▶"),
-      el("button", { class: "icon-btn small danger", title: "Delete topic", onclick: () => deleteTopic(topic) }, "✕")
+      el("button", { class: "icon-btn small", title: "Add or edit link", onclick: () => editTopicLink(topic) }, icon("link")),
+      el("button", { class: "icon-btn small", title: "Move a day earlier", onclick: () => moveTopic(topic, -1) }, icon("chevron-left")),
+      el("button", { class: "icon-btn small", title: "Move a day later", onclick: () => moveTopic(topic, 1) }, icon("chevron-right")),
+      el("button", { class: "icon-btn small danger", title: "Delete topic", onclick: () => deleteTopic(topic) }, icon("x"))
     )
   );
 
@@ -295,7 +320,7 @@ function topicRow(topic, { showPlan = false, showToToday = false } = {}) {
             rel: "noopener",
             title: topic.link,
           },
-          "↗"
+          icon("external-link")
         )
       : null,
     showPlan ? el("span", { class: "topic-plan" }, planName(topic.planId)) : null
@@ -688,6 +713,8 @@ function renderPlanDetail(planId) {
   for (let date = first, i = 0; date <= last && i < 370; date = addDays(date, 1), i++) {
     const isToday = date === today;
     const outOfRange = date < plan.startDate || date > plan.endDate;
+    const dayOfWeek = parseDateStr(date).getDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
     const col = el(
       "div",
       {
@@ -695,6 +722,7 @@ function renderPlanDetail(planId) {
           "day-col" +
           (isToday ? " today" : "") +
           (date < today ? " past-day" : "") +
+          (isWeekend ? " weekend" : "") +
           (outOfRange ? " out-of-range" : ""),
       },
       el(
