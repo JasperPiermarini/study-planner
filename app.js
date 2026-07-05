@@ -140,6 +140,13 @@ function moveTopic(topic, days) {
   updateDoc(doc(topicsCol, topic.id), { date: addDays(topic.date, days) });
 }
 
+function moveTopicToDate(topicId, date) {
+  const topic = topics.find((t) => t.id === topicId);
+  if (topic && topic.date !== date) {
+    updateDoc(doc(topicsCol, topicId), { date });
+  }
+}
+
 function moveTopicToToday(topic) {
   updateDoc(doc(topicsCol, topic.id), { date: todayStr() });
 }
@@ -214,7 +221,58 @@ function planName(planId) {
   return plans.find((p) => p.id === planId)?.name ?? "";
 }
 
-function topicRow(topic, { showPlan = false, showMove = false, showToToday = false } = {}) {
+// Compact draggable card used in the plan calendar board.
+function topicCard(topic) {
+  const check = el("input", {
+    type: "checkbox",
+    class: "topic-check",
+    onchange: () => toggleTopic(topic),
+  });
+  check.checked = topic.done;
+
+  const card = el(
+    "div",
+    { class: "topic-card" + (topic.done ? " done" : ""), draggable: "true" },
+    el(
+      "div",
+      { class: "topic-card-top" },
+      check,
+      el("span", { class: "topic-title" }, topic.title),
+      topic.link
+        ? el(
+            "a",
+            {
+              class: "icon-btn topic-link",
+              href: topic.link,
+              target: "_blank",
+              rel: "noopener",
+              title: topic.link,
+            },
+            "↗"
+          )
+        : null
+    ),
+    el(
+      "div",
+      { class: "topic-card-controls" },
+      el("button", { class: "icon-btn small", title: "Add or edit link", onclick: () => editTopicLink(topic) }, "🔗"),
+      el("button", { class: "icon-btn small", title: "Move a day earlier", onclick: () => moveTopic(topic, -1) }, "◀"),
+      el("button", { class: "icon-btn small", title: "Move a day later", onclick: () => moveTopic(topic, 1) }, "▶"),
+      el("button", { class: "icon-btn small danger", title: "Delete topic", onclick: () => deleteTopic(topic) }, "✕")
+    )
+  );
+
+  card.addEventListener("dragstart", (e) => {
+    e.dataTransfer.setData("text/plain", topic.id);
+    e.dataTransfer.effectAllowed = "move";
+    card.classList.add("dragging");
+  });
+  card.addEventListener("dragend", () => card.classList.remove("dragging"));
+
+  return card;
+}
+
+function topicRow(topic, { showPlan = false, showToToday = false } = {}) {
   const check = el("input", {
     type: "checkbox",
     class: "topic-check",
@@ -246,18 +304,6 @@ function topicRow(topic, { showPlan = false, showMove = false, showToToday = fal
   if (showToToday) {
     row.append(
       el("button", { class: "btn small", onclick: () => moveTopicToToday(topic) }, "To today")
-    );
-  }
-  if (showMove) {
-    row.append(
-      el(
-        "div",
-        { class: "move-controls" },
-        el("button", { class: "icon-btn", title: "Add or edit link", onclick: () => editTopicLink(topic) }, "🔗"),
-        el("button", { class: "icon-btn", title: "Move a day earlier", onclick: () => moveTopic(topic, -1) }, "◀"),
-        el("button", { class: "icon-btn", title: "Move a day later", onclick: () => moveTopic(topic, 1) }, "▶"),
-        el("button", { class: "icon-btn danger", title: "Delete topic", onclick: () => deleteTopic(topic) }, "✕")
-      )
     );
   }
   return row;
@@ -622,31 +668,71 @@ function renderPlanDetail(planId) {
     )
   );
 
-  if (planTopics.length === 0) {
-    view.append(el("div", { class: "empty-state" }, "No topics in this plan."));
+  // Calendar board: one column per day, left to right, including empty days.
+  // Extend the range to cover topics moved outside the plan's dates.
+  let first = plan.startDate;
+  let last = plan.endDate;
+  for (const t of planTopics) {
+    if (t.date < first) first = t.date;
+    if (t.date > last) last = t.date;
   }
 
-  // Group topics by date.
   const byDate = new Map();
   for (const t of planTopics) {
     if (!byDate.has(t.date)) byDate.set(t.date, []);
     byDate.get(t.date).push(t);
   }
 
-  for (const [date, dayTopics] of [...byDate.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
+  const board = el("div", { class: "day-board" });
+  let todayCol = null;
+  for (let date = first, i = 0; date <= last && i < 370; date = addDays(date, 1), i++) {
     const isToday = date === today;
-    const group = el(
+    const outOfRange = date < plan.startDate || date > plan.endDate;
+    const col = el(
       "div",
-      { class: "day-group" + (date < today ? " past-day" : "") },
+      {
+        class:
+          "day-col" +
+          (isToday ? " today" : "") +
+          (date < today ? " past-day" : "") +
+          (outOfRange ? " out-of-range" : ""),
+      },
       el(
         "div",
-        { class: "day-header" + (isToday ? " today" : "") },
-        el("h3", {}, isToday ? "Today" : formatDate(date)),
-        isToday ? el("span", { class: "subtle" }, formatDate(date)) : null
+        { class: "day-col-header" },
+        el("div", { class: "day-col-weekday" }, isToday ? "Today" : parseDateStr(date).toLocaleDateString(undefined, { weekday: "short" })),
+        el("div", { class: "day-col-date" }, parseDateStr(date).toLocaleDateString(undefined, { day: "numeric", month: "short" }))
       )
     );
-    dayTopics.forEach((t) => group.append(topicRow(t, { showMove: true })));
-    view.append(group);
+
+    const dropDate = date;
+    col.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      col.classList.add("drag-over");
+    });
+    col.addEventListener("dragleave", (e) => {
+      if (!col.contains(e.relatedTarget)) col.classList.remove("drag-over");
+    });
+    col.addEventListener("drop", (e) => {
+      e.preventDefault();
+      col.classList.remove("drag-over");
+      moveTopicToDate(e.dataTransfer.getData("text/plain"), dropDate);
+    });
+
+    (byDate.get(date) ?? []).forEach((t) => col.append(topicCard(t)));
+    board.append(col);
+    if (isToday) todayCol = col;
+  }
+  view.append(board);
+
+  // Scroll the board so today (or the first day) is in view.
+  if (todayCol) {
+    board.scrollLeft = Math.max(0, todayCol.offsetLeft - board.clientWidth / 3);
+  }
+
+  if (planTopics.length === 0) {
+    view.append(el("div", { class: "empty-state" }, "No topics in this plan yet — add one below."));
   }
 
   // Add-topic form (defaults to today if within range, else the start date).
@@ -685,6 +771,7 @@ function render() {
   document.querySelectorAll(".tab").forEach((tab) => {
     tab.classList.toggle("active", tab.dataset.tab === tabName);
   });
+  view.classList.toggle("wide", route.startsWith("plan/"));
 
   if (route === "today") renderToday();
   else if (route === "plans") renderPlans();
