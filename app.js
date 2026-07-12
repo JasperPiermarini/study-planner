@@ -778,12 +778,21 @@ function renderNewPlan() {
 // so it survives the full re-render that follows every Firestore update.
 const selectedAddDate = {};
 
+// Tracks which plan is currently open so a Firestore-triggered re-render (e.g.
+// after a drag-and-drop move) can keep the board's scroll position instead of
+// re-running the "scroll to today" logic every time.
+let lastRenderedPlanId = null;
+
 function renderPlanDetail(planId) {
   const plan = plans.find((p) => p.id === planId);
   if (!plan) {
     view.replaceChildren(el("div", { class: "empty-state" }, "Plan not found."));
     return;
   }
+
+  const isFreshNavigation = planId !== lastRenderedPlanId;
+  const previousScrollLeft = view.querySelector(".day-board")?.scrollLeft;
+  lastRenderedPlanId = planId;
 
   const planTopics = topics.filter((t) => t.planId === planId).sort(byDateAndOrder);
   const today = todayStr();
@@ -910,14 +919,23 @@ function renderPlanDetail(planId) {
   }
   view.append(board);
 
-  // Scroll today into view — horizontally on the desktop board, vertically
-  // (page scroll) on the mobile stacked layout.
-  if (todayCol) {
-    if (window.matchMedia("(max-width: 480px)").matches) {
-      todayCol.scrollIntoView({ block: "center" });
-    } else {
-      board.scrollLeft = Math.max(0, todayCol.offsetLeft - board.clientWidth / 3);
+  // On first opening this plan, scroll today into view — horizontally on the
+  // desktop board, vertically (page scroll) on the mobile stacked layout. On
+  // later re-renders (e.g. after a drag-and-drop move updates Firestore),
+  // keep wherever the board was already scrolled to instead of snapping back.
+  // Use "instant" explicitly — .day-board has scroll-behavior: smooth for
+  // user-driven scrolling, which would otherwise make these programmatic
+  // corrections visibly animate from the left edge on every re-render.
+  if (isFreshNavigation) {
+    if (todayCol) {
+      if (window.matchMedia("(max-width: 480px)").matches) {
+        todayCol.scrollIntoView({ block: "center", behavior: "instant" });
+      } else {
+        board.scrollTo({ left: Math.max(0, todayCol.offsetLeft - board.clientWidth / 3), behavior: "instant" });
+      }
     }
+  } else if (previousScrollLeft) {
+    board.scrollTo({ left: previousScrollLeft, behavior: "instant" });
   }
 
   if (planTopics.length === 0) {
@@ -957,6 +975,8 @@ function render() {
     tab.classList.toggle("active", tab.dataset.tab === tabName);
   });
   view.classList.toggle("wide", route.startsWith("plan/"));
+
+  if (!route.startsWith("plan/")) lastRenderedPlanId = null;
 
   if (route === "today") renderToday();
   else if (route === "plans") renderPlans();
